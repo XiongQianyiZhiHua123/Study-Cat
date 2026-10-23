@@ -94,5 +94,6 @@ export const zh = {
   'chars.sub.cat': '摇尾巴,会喵喵叫', 'chars.sub.dog': '开心地摇尾巴', 'chars.sub.fox': '大尾巴甩呀甩', 'chars.sub.wolf': '庆祝时会嚎叫',
   'chars.sub.snake': '扭一扭,吐舌头', 'chars.sub.duck': '拍拍小翅膀', 'chars.sub.capybara': '头顶柚子,慢悠悠', 'chars.sub.croc': '张大嘴巴笑哈哈',
   'draw.screens': '画布有三屏:', 'draw.screen0': '左边', 'draw.screen1': '中间(小猫在这)', 'draw.screen2': '右边',
-  'parent.charDays': '连续几天解锁新角色'
+  'parent.charDays': '连续几天解锁新角色',
+  'icon.title': '画一个自己的小装饰', 'icon.mine': '我画的', 'icon.draw': '重新画', 'icon.empty': '先画点什么吧', 'icon.hint': '画在格子里,保存后就会变成场景里长出来的装饰。'
 };

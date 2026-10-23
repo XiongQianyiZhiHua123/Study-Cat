@@ -36,7 +36,7 @@ export function mount(root) {
       return `<div class="scard${isActive ? ' active' : ''}">
         <button class="thumb" data-act="choose" data-id="${id}" aria-label="${esc(name)}">${sceneSVG(st, id, { elements: isOwned }, 'aria-hidden="true"')}${badge}${overlay}</button>
         <b>${esc(name)}</b><span>${esc(sub)}</span>
-        <div class="hintrow" title="${esc(t('scenes.grows'))}">${(() => { const e = sceneElements(id, st); return elementIcons([...e.small, e.big, e.rare]); })()}</div>
+        <div class="hintrow" title="${esc(t('scenes.grows'))}">${(() => { const e = sceneElements(id, st); return elementIcons([...e.small, e.big, e.rare], st); })()}</div>
         ${isCustom && isOwned ? `<a class="btn card-btn small" href="#/draw?id=${id}">${ICON.pencil}<span>${esc(t('scenes.edit'))}</span></a>` : ''}
       </div>`;
     }).join('');

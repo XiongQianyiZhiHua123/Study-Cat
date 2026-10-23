@@ -14,7 +14,7 @@ export const LEFT_AT = 20; // 放了 20 个,左边一屏出现
 export const CUSTOM_IDS = ['custom', 'custom2', 'custom3', 'custom4', 'custom5'];
 export const isCustomId = (id) => CUSTOM_IDS.includes(id);
 export const CHAR_IDS = ['cat', 'dog', 'fox', 'wolf', 'snake', 'duck', 'capybara', 'croc'];
-const defaultCustom = () => ({ map: {}, big: 'bigstar', rare: 'rainbow', bgColor: '#CFE9FF' });
+const defaultCustom = () => ({ map: {}, big: 'bigstar', rare: 'rainbow', bgColor: '#CFE9FF', icons: {}, useIcon: {} });
 
 /* ---------- 日期工具 ---------- */
 export function ymd(d) {
@@ -254,6 +254,8 @@ export function deleteSession(state, id) {
 export function customCfg(state, id) {
   const c = state.scenes.customs;
   if (!c[id]) c[id] = defaultCustom();
+  if (!c[id].icons) c[id].icons = {};
+  if (!c[id].useIcon) c[id].useIcon = {};
   return c[id];
 }
 export function chooseChar(state, id) {

@@ -223,9 +223,9 @@ export function mount(root) {
       const subj = [0, 1, 2].map((i) => st.subjects.filter((_, k) => k % 3 === i).map((x) => L.subjectName(x, lang)).join(' / '));
       const row = (icons, text) => `<div class="hrow"><span class="hic">${icons}</span><span>${esc(text)}</span></div>`;
       modal(`<h2>${esc(t('hint.title', { name: sceneName(sid) }))}</h2>
-        ${e.small.map((k, i) => row(elementIcons([k]), t('hint.small', { s: subj[i] || '' }))).join('')}
-        ${row(elementIcons([e.big]), t('hint.big', { n: st.settings.goalMin }))}
-        ${row(elementIcons([e.rare]), t('hint.rare', { d: L.RARE_AT.join(' / ') }))}
+        ${e.small.map((k, i) => row(elementIcons([k], st), t('hint.small', { s: subj[i] || '' }))).join('')}
+        ${row(elementIcons([e.big], st), t('hint.big', { n: st.settings.goalMin }))}
+        ${row(elementIcons([e.rare], st), t('hint.rare', { d: L.RARE_AT.join(' / ') }))}
         <p class="note">${esc(t('hint.pano', { a: L.RIGHT_AT, b: L.LEFT_AT }))}</p>
         <div class="modal-actions"><span class="grow"></span><button class="btn pri" data-m="no">${esc(t('common.close'))}</button></div>`, (el, close) => { el.querySelector('[data-m=no]').onclick = close; });
     },

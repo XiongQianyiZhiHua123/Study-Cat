@@ -94,5 +94,6 @@ export const en = {
   'chars.sub.cat': 'Wags its tail, says meow', 'chars.sub.dog': 'Wags happily', 'chars.sub.fox': 'Swishes a big tail', 'chars.sub.wolf': 'Howls to celebrate',
   'chars.sub.snake': 'Wiggles and flicks its tongue', 'chars.sub.duck': 'Flaps tiny wings', 'chars.sub.capybara': 'Chill, with a yuzu on its head', 'chars.sub.croc': 'Big happy grin',
   'draw.screens': 'Three screens wide:', 'draw.screen0': 'Left', 'draw.screen1': 'Middle (buddy sits here)', 'draw.screen2': 'Right',
-  'parent.charDays': 'Streak days per new buddy'
+  'parent.charDays': 'Streak days per new buddy',
+  'icon.title': 'Draw your own decoration', 'icon.mine': 'My drawing', 'icon.draw': 'Redraw', 'icon.empty': 'Draw something first', 'icon.hint': 'Draw in the box. It will grow in your scene after saving.'
 };

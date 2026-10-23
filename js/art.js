@@ -168,7 +168,8 @@ export const fgPath = (fill) => `<path d="${FG_PATH}" fill="${fill}"/>`;
 export function sceneElements(sceneId, state) {
   if (isCustomId(sceneId)) {
     const c = customCfg(state, sceneId);
-    return { small: [0, 1, 2].map((i) => (c.map && c.map[i]) || CUSTOM_CHOICES[i]), big: c.big, rare: c.rare };
+    const mine = (key) => (c.useIcon[key] && c.icons[key] ? `img:${sceneId}:${key}` : null);
+    return { small: [0, 1, 2].map((i) => mine('s' + i) || (c.map && c.map[i]) || CUSTOM_CHOICES[i]), big: mine('big') || c.big, rare: mine('rare') || c.rare };
   }
   return (SCENE_BY_ID[sceneId] || SCENE_BY_ID.night).elements;
 }
@@ -178,10 +179,19 @@ export function elementType(sceneId, state, el) {
   return el.kind === 'small' ? e.small[el.slot] : e[el.kind];
 }
 
+/** 元素类型 → SVG。'img:<场景id>:<s0|s1|s2|big|rare>' 表示自己画的小图 */
+export function typeMarkup(type, state) {
+  if (typeof type === 'string' && type.startsWith('img:')) {
+    const [, sid, key] = type.split(':');
+    const c = state.scenes.customs[sid];
+    const href = c && c.icons && c.icons[key];
+    return href ? `<image href="${href}" x="-24" y="-24" width="48" height="48"/>` : EL.star;
+  }
+  return EL[type] || EL.star;
+}
 export function elementMarkup(sceneId, state, el) {
   const e = sceneElements(sceneId, state);
-  const type = el.kind === 'small' ? e.small[el.slot] : e[el.kind];
-  return EL[type] || EL.star;
+  return typeMarkup(el.kind === 'small' ? e.small[el.slot] : e[el.kind], state);
 }
 
 /** 描绘一个物品栏里的奖励小图标(给口袋用) */

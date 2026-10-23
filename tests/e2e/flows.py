@@ -125,6 +125,24 @@ with sync_playwright() as p:
     pg.check('#penonly') if False else None
     ctx.close()
 
+    # 7b 自己画小装饰
+    ctx, pg = newpage(fixture)
+    pg.goto(BASE + '#/draw?id=custom'); pg.wait_for_timeout(300)
+    pg.click('details.grows summary'); pg.wait_for_timeout(150)
+    pg.click('[data-act=editicon][data-key=s0]'); pg.wait_for_timeout(200)
+    ib = pg.locator('#ic').bounding_box()
+    pg.mouse.move(ib['x'] + 60, ib['y'] + 60); pg.mouse.down()
+    for i in range(12): pg.mouse.move(ib['x'] + 60 + i * 8, ib['y'] + 60 + (i % 3) * 10)
+    pg.mouse.up(); pg.screenshot(path='/tmp/shots/flow-iconedit.png')
+    pg.click('[data-m=ok]'); pg.wait_for_timeout(300)
+    cfg = st(pg)['scenes']['customs']['custom']
+    ok('own small decoration saved and in use', cfg['icons'].get('s0', '').startswith('data:image/png') and cfg['useIcon'].get('s0') is True, cfg['useIcon'])
+    pg.click('[data-act=el][data-slot="0"] >> nth=0'); pg.wait_for_timeout(200)
+    ok('choosing a preset switches back', st(pg)['scenes']['customs']['custom']['useIcon']['s0'] is False)
+    pg.click('[data-act=useicon][data-key=s0]'); pg.wait_for_timeout(200)
+    ok('can switch to my drawing again', st(pg)['scenes']['customs']['custom']['useIcon']['s0'] is True)
+    ctx.close()
+
     # 8 统计 翻月
     ctx, pg = newpage(fixture)
     pg.goto(BASE + '#/stats'); pg.wait_for_timeout(300)

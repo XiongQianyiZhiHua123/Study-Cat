@@ -1,5 +1,5 @@
 // 各页面共用的小工具:转义、图标、场景拼装、弹窗、提示条
-import { SCENE_BY_ID, EL, KIND_SCALE, elementMarkup, elementType, fgPath } from './art.js';
+import { SCENE_BY_ID, typeMarkup, KIND_SCALE, elementMarkup, elementType, fgPath } from './art.js';
 import { catFx } from './cat.js';
 import { charOf } from './chars.js';
 import { drawingOf } from './store.js';
@@ -62,7 +62,7 @@ export function sceneInner(state, sceneId, { wide = false, cat = false, elements
     const list = state.scenes.placed[sceneId] || [];
     out += list.map((el, i) => {
       const sc2 = KIND_SCALE[el.kind] || 1;
-      return `<g transform="translate(${el.x} ${el.y}) rotate(${el.r}) scale(${(sc2 * el.f).toFixed(2)} ${sc2})"><g class="${i === pop ? 'placed pop' : 'placed'}"><g class="anim a-${elementType(sceneId, state, el)}" style="animation-delay:-${((i * 0.73) % 4).toFixed(2)}s">${elementMarkup(sceneId, state, el)}</g></g></g>`;
+      return `<g transform="translate(${el.x} ${el.y}) rotate(${el.r}) scale(${(sc2 * el.f).toFixed(2)} ${sc2})"><g class="${i === pop ? 'placed pop' : 'placed'}"><g class="anim ${(() => { const ty = elementType(sceneId, state, el); return ty.startsWith('img:') ? 'a-mine' : 'a-' + ty; })()}" style="animation-delay:-${((i * 0.73) % 4).toFixed(2)}s">${elementMarkup(sceneId, state, el)}</g></g></g>`;
     }).join('');
   }
   if (cat && fx) out += `<g transform="${T(SCREEN_W)}">${catFx()}</g>`;
@@ -81,8 +81,8 @@ export function sceneSVG(state, sceneId, opts = {}, attrs = '') {
 export const sceneName = (id) => (isCustomId(id) ? t('scene.customN', { n: CUSTOM_IDS.indexOf(id) + 1 }) : t('scene.' + id));
 
 /** 一排小图标:这个场景会长出什么(给场景页和"说明"弹窗用) */
-export function elementIcons(list) {
-  return list.map((k) => `<svg viewBox="-24 -24 48 48" aria-hidden="true">${EL[k] || EL.star}</svg>`).join('');
+export function elementIcons(list, state) {
+  return list.map((k) => `<svg viewBox="-24 -24 48 48" aria-hidden="true">${typeMarkup(k, state)}</svg>`).join('');
 }
 
 /* ---------- 弹窗和提示 ---------- */

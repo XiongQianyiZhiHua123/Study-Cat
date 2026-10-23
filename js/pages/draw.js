@@ -3,7 +3,8 @@
 import * as store from '../store.js';
 import * as L from '../logic.js';
 import { t, getLang } from '../i18n.js';
-import { EL, CUSTOM_CHOICES, CUSTOM_BIG, CUSTOM_RARE } from '../art.js';
+import { typeMarkup, sceneElements, CUSTOM_CHOICES, CUSTOM_BIG, CUSTOM_RARE } from '../art.js';
+import { openIconEditor } from './iconedit.js';
 import { esc, ICON, pageHead, sceneName, confirmBox, toast } from '../ui.js';
 import { play } from '../sound.js';
 
@@ -36,7 +37,7 @@ export function mount(root) {
   const st0 = store.get();
   if (!L.isCustomId(id)) id = st0.scenes.active && L.isCustomId(st0.scenes.active) ? st0.scenes.active : (st0.scenes.owned.find(L.isCustomId) || 'custom');
   if (id !== 'custom' && !st0.scenes.owned.includes(id)) { location.hash = '#/scenes'; return () => {}; }
-  let screenIdx = 1;
+  let screenIdx = 1; let growsOpen = false;
   let strokes = JSON.parse(JSON.stringify(store.drawingOf(id).strokes || []));
   const tool = { mode: 'pen', color: COLORS[1], size: 1 };
   let saving = false; let saveTimer = null; let cur = null; let canvas; let ctx;
@@ -57,12 +58,17 @@ export function mount(root) {
     const st = store.get(); const S = st.settings; const c = L.customCfg(st, id); const lang = getLang();
     const tabs = st.scenes.owned.filter(L.isCustomId);
     if (!tabs.includes(id)) tabs.unshift(id);
+    const cur = sceneElements(id, st);
+    const optBtn = (key, k, on) => `<button class="elopt${on ? ' on' : ''}" data-act="el" data-slot="${key}" data-k="${k}" aria-pressed="${on}"><svg viewBox="-24 -24 48 48" aria-hidden="true">${typeMarkup(k, st)}</svg></button>`;
+    const mineBtn = (key) => {
+      const has = !!c.icons[key]; const on = has && c.useIcon[key];
+      return `<button class="elopt mine${on ? ' on' : ''}" data-act="${has ? 'useicon' : 'editicon'}" data-key="${key}" aria-pressed="${on}" aria-label="${esc(t('icon.mine'))}">${has ? `<svg viewBox="-24 -24 48 48" aria-hidden="true"><image href="${c.icons[key]}" x="-24" y="-24" width="48" height="48"/></svg>` : ICON.pencil}</button>${has ? `<button class="elopt edit" data-act="editicon" data-key="${key}" aria-label="${esc(t('icon.draw'))}">${ICON.edit}</button>` : ''}`;
+    };
     const slots = [0, 1, 2].map((i) => {
-      const names = st.subjects.filter((_, k) => k % 3 === i).map((s) => L.subjectName(s, lang)).join(' / ');
-      const cur2 = (c.map && c.map[i]) || CUSTOM_CHOICES[i];
-      return `<div class="elrow"><span>${esc(names)}</span><div class="elopts">${CUSTOM_CHOICES.map((k) => `<button class="elopt${k === cur2 ? ' on' : ''}" data-act="el" data-slot="${i}" data-k="${k}" aria-pressed="${k === cur2}"><svg viewBox="-24 -24 48 48" aria-hidden="true">${EL[k]}</svg></button>`).join('')}</div></div>`;
+      const names = st.subjects.filter((_, k) => k % 3 === i).map((x) => L.subjectName(x, lang)).join(' / ');
+      return `<div class="elrow"><span>${esc(names)}</span><div class="elopts">${CUSTOM_CHOICES.map((k) => optBtn(i, k, k === cur.small[i])).join('')}${mineBtn('s' + i)}</div></div>`;
     }).join('');
-    const pickRow = (label, key, list) => `<div class="elrow"><span>${esc(label)}</span><div class="elopts">${list.map((k) => `<button class="elopt${k === c[key] ? ' on' : ''}" data-act="el" data-slot="${key}" data-k="${k}" aria-pressed="${k === c[key]}"><svg viewBox="-24 -24 48 48" aria-hidden="true">${EL[k]}</svg></button>`).join('')}</div></div>`;
+    const pickRow = (label, key, list) => `<div class="elrow"><span>${esc(label)}</span><div class="elopts">${list.map((k) => optBtn(key, k, k === cur[key])).join('')}${mineBtn(key)}</div></div>`;
     root.innerHTML = `<div class="page drawpage">${pageHead(t('draw.title'))}
       <div class="drawgrid">
         <div class="tools">
@@ -89,12 +95,14 @@ export function mount(root) {
             <label class="field row"><span>${esc(t('draw.bg'))}</span><input type="color" id="bgc" value="${c.bgColor}"></label>
             <label class="switch"><input type="checkbox" id="penonly" ${S.penOnly ? 'checked' : ''}><b></b><span>${esc(t('draw.penOnly'))}</span></label>
           </div>
-          <details class="card grows"><summary>${esc(t('draw.grows'))}</summary>${slots}${pickRow(t('draw.big'), 'big', CUSTOM_BIG)}${pickRow(t('draw.rare'), 'rare', CUSTOM_RARE)}<p class="note">${esc(t('draw.growsHint'))}</p></details>
+          <details class="card grows"${growsOpen ? ' open' : ''}><summary>${esc(t('draw.grows'))}</summary>${slots}${pickRow(t('draw.big'), 'big', CUSTOM_BIG)}${pickRow(t('draw.rare'), 'rare', CUSTOM_RARE)}<p class="note">${esc(t('draw.growsHint'))}</p></details>
           <button class="btn pri big" data-act="finish">${esc(t('draw.finish'))}</button>
         </div>
       </div></div>`;
     canvas = root.querySelector('#cv'); ctx = canvas.getContext('2d');
     redraw();
+    const gd = root.querySelector('details.grows');
+    if (gd) gd.addEventListener('toggle', () => { growsOpen = gd.open; });
     const cs = root.querySelector('#cs');
     cs.scrollLeft = screenIdx * cs.clientWidth;
     cs.addEventListener('scroll', () => { screenIdx = Math.round(cs.scrollLeft / Math.max(1, cs.clientWidth)); root.querySelectorAll('[data-act=screen]').forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === screenIdx)); });
@@ -147,8 +155,10 @@ export function mount(root) {
     },
     el(b) {
       const k = b.dataset.slot;
-      store.update((s) => { const c2 = L.customCfg(s, id); if (k === 'big' || k === 'rare') c2[k] = b.dataset.k; else { c2.map = c2.map || {}; c2.map[k] = b.dataset.k; } });
+      store.update((s) => { const c2 = L.customCfg(s, id); if (k === 'big' || k === 'rare') { c2[k] = b.dataset.k; c2.useIcon[k] = false; } else { c2.map = c2.map || {}; c2.map[k] = b.dataset.k; c2.useIcon['s' + k] = false; } });
     },
+    useicon(b) { store.update((s) => { L.customCfg(s, id).useIcon[b.dataset.key] = true; }); },
+    editicon(b) { openIconEditor(id, b.dataset.key); },
     async finish() {
       await flush();
       store.update((s) => { L.chooseScene(s, id); s.scenes.active = id; });
