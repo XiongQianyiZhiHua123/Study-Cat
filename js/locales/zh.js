@@ -95,5 +95,6 @@ export const zh = {
   'chars.sub.snake': '扭一扭,吐舌头', 'chars.sub.duck': '拍拍小翅膀', 'chars.sub.capybara': '头顶柚子,慢悠悠', 'chars.sub.croc': '张大嘴巴笑哈哈',
   'draw.screens': '画布有三屏:', 'draw.screen0': '左边', 'draw.screen1': '中间(小猫在这)', 'draw.screen2': '右边',
   'parent.charDays': '连续几天解锁新角色',
-  'icon.title': '画一个自己的小装饰', 'icon.mine': '我画的', 'icon.draw': '重新画', 'icon.empty': '先画点什么吧', 'icon.hint': '画在格子里,保存后就会变成场景里长出来的装饰。'
+  'icon.title': '画一个自己的小装饰', 'icon.mine': '我画的', 'icon.draw': '重新画', 'icon.empty': '先画点什么吧', 'icon.hint': '画在格子里,保存后就会变成场景里长出来的装饰。',
+  'home.backToPocket': '收回口袋啦', 'hint.move': '放好的装饰可以挪位置:按住它不放,拿起来后拖到新地方松手;拖到右下角的口袋上松手,就收回口袋。'
 };

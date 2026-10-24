@@ -143,6 +143,38 @@ with sync_playwright() as p:
     ok('can switch to my drawing again', st(pg)['scenes']['customs']['custom']['useIcon']['s0'] is True)
     ctx.close()
 
+    # 7c 拖动已放好的装饰(鼠标 / 手指长按 / 拖到口袋收回)
+    ctx, pg = newpage(fixture)
+    pg.goto(BASE); pg.wait_for_timeout(400)
+    ok('placed elements animate', pg.evaluate("getComputedStyle(document.querySelector('.pano .anim')).animationName") != 'none')
+    def pos(i): return st(pg)['scenes']['placed']['night'][i]
+    b0 = pg.locator('.pel[data-pi="0"]').bounding_box(); x0 = pos(0)['x']
+    cx, cy = b0['x'] + b0['width'] / 2, b0['y'] + b0['height'] / 2
+    pg.mouse.move(cx, cy); pg.mouse.down(); pg.mouse.move(cx + 60, cy + 40, steps=6); pg.mouse.up(); pg.wait_for_timeout(300)
+    ok('mouse drag moves element', pos(0)['x'] > x0 + 20, (x0, pos(0)['x']))
+    # 手指:长按后拖动
+    b1 = pg.locator('.pel[data-pi="1"]').bounding_box(); x1 = pos(1)['x']; y1 = pos(1)['y']
+    c = pg.context.new_cdp_session(pg)
+    tx, ty = b1['x'] + b1['width'] / 2, b1['y'] + b1['height'] / 2
+    c.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': tx, 'y': ty}]}); pg.wait_for_timeout(600)
+    for k in range(1, 7): c.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': tx - 8 * k, 'y': ty + 10 * k}]}); pg.wait_for_timeout(30)
+    c.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []}); pg.wait_for_timeout(300)
+    ok('touch long-press drag moves element', pos(1)['x'] < x1 - 15 and pos(1)['y'] > y1 + 20, (x1, y1, pos(1)['x'], pos(1)['y']))
+    # 手指快速滑动 = 滑动全景,不是拖装饰
+    b2 = pg.locator('.pel[data-pi="2"]').bounding_box(); x2 = pos(2)['x']
+    tx, ty = b2['x'] + b2['width'] / 2, b2['y'] + b2['height'] / 2
+    c.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': tx, 'y': ty}]})
+    for k in range(1, 8): c.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': tx - 30 * k, 'y': ty}]}); pg.wait_for_timeout(20)
+    c.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []}); pg.wait_for_timeout(300)
+    ok('quick swipe does not move element', pos(2)['x'] == x2, (x2, pos(2)['x']))
+    # 拖到口袋 = 收回
+    n = len(st(pg)['scenes']['placed']['night']); k0 = len(st(pg)['rewards']['pocket'])
+    pk = pg.locator('.pocket').bounding_box(); b3 = pg.locator('.pel[data-pi="2"]').bounding_box()
+    pg.mouse.move(b3['x'] + b3['width'] / 2, b3['y'] + b3['height'] / 2); pg.mouse.down()
+    pg.mouse.move(pk['x'] + pk['width'] / 2, pk['y'] + pk['height'] / 2, steps=10); pg.mouse.up(); pg.wait_for_timeout(300)
+    ok('drop on pocket returns it', len(st(pg)['scenes']['placed']['night']) == n - 1 and len(st(pg)['rewards']['pocket']) == k0 + 1)
+    ctx.close()
+
     # 8 统计 翻月
     ctx, pg = newpage(fixture)
     pg.goto(BASE + '#/stats'); pg.wait_for_timeout(300)

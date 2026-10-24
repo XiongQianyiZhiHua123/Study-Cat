@@ -62,7 +62,7 @@ export function sceneInner(state, sceneId, { wide = false, cat = false, elements
     const list = state.scenes.placed[sceneId] || [];
     out += list.map((el, i) => {
       const sc2 = KIND_SCALE[el.kind] || 1;
-      return `<g transform="translate(${el.x} ${el.y}) rotate(${el.r}) scale(${(sc2 * el.f).toFixed(2)} ${sc2})"><g class="${i === pop ? 'placed pop' : 'placed'}"><g class="anim ${(() => { const ty = elementType(sceneId, state, el); return ty.startsWith('img:') ? 'a-mine' : 'a-' + ty; })()}" style="animation-delay:-${((i * 0.73) % 4).toFixed(2)}s">${elementMarkup(sceneId, state, el)}</g></g></g>`;
+      return `<g class="pel" data-pi="${i}" transform="translate(${el.x} ${el.y}) rotate(${el.r}) scale(${(sc2 * el.f).toFixed(2)} ${sc2})"><g class="${i === pop ? 'placed pop' : 'placed'}"><g class="anim ${(() => { const ty = elementType(sceneId, state, el); return ty.startsWith('img:') ? 'a-mine' : 'a-' + ty; })()}" style="animation-delay:-${((i * 0.73) % 4).toFixed(2)}s"><circle r="26" fill="transparent"/>${elementMarkup(sceneId, state, el)}</g></g></g>`;
     }).join('');
   }
   if (cat && fx) out += `<g transform="${T(SCREEN_W)}">${catFx()}</g>`;

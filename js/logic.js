@@ -74,7 +74,7 @@ export function createState() {
     active: null, // { start: ms, subjectId }
     rewards: { pocket: [], smallToday: {}, goalRewarded: {}, claimed: {}, makeupCards: 0, sceneCredits: 1, charCredits: 1 },
     chars: { owned: [], active: null },
-    scenes: { owned: [], active: null, placed: {}, customs: { custom: defaultCustom() } },
+    scenes: { owned: [], active: null, placed: {}, reveal: {}, customs: { custom: defaultCustom() } },
     nextId: 1
   };
 }
@@ -270,7 +270,7 @@ export function chooseChar(state, id) {
 }
 /** 全景里哪几屏已经"出现" */
 export function screensOpen(state, sceneId) {
-  const n = sceneProgress(state, sceneId);
+  const n = Math.max(sceneProgress(state, sceneId), (state.scenes.reveal && state.scenes.reveal[sceneId]) || 0);
   return { left: n >= LEFT_AT, right: n >= RIGHT_AT, leftNeed: Math.max(0, LEFT_AT - n), rightNeed: Math.max(0, RIGHT_AT - n) };
 }
 export function canPlaceAt(state, sceneId, x) {
@@ -296,7 +296,24 @@ export function placeFromPocket(state, index, x, y, rng = Math.random) {
   const item = R.pocket.splice(index, 1)[0];
   const el = { kind: item.kind, slot: item.slot || 0, x: Math.round(x), y: Math.round(Math.min(480, Math.max(60, y))), r: Math.round((rng() - 0.5) * 30), f: rng() < 0.5 ? 1 : -1 };
   (sc.placed[sc.active] = sc.placed[sc.active] || []).push(el);
+  sc.reveal = sc.reveal || {};
+  sc.reveal[sc.active] = Math.max(sc.reveal[sc.active] || 0, sc.placed[sc.active].length); // 收回装饰后,已出现的风景不会再被盖住
   return el;
+}
+/** 把已放好的装饰挪到新位置 */
+export function moveElement(state, sceneId, index, x, y) {
+  const el = (state.scenes.placed[sceneId] || [])[index];
+  if (!el || !canPlaceAt(state, sceneId, x)) return false;
+  el.x = Math.round(x); el.y = Math.round(Math.min(480, Math.max(60, y)));
+  return true;
+}
+/** 把已放好的装饰收回口袋 */
+export function removeToPocket(state, sceneId, index) {
+  const a = state.scenes.placed[sceneId] || [];
+  if (!a[index]) return false;
+  const [el] = a.splice(index, 1);
+  state.rewards.pocket.push(el.kind === 'small' ? { kind: 'small', slot: el.slot } : { kind: el.kind });
+  return true;
 }
 export function sceneProgress(state, sceneId) {
   return (state.scenes.placed[sceneId] || []).length;

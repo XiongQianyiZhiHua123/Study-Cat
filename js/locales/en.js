@@ -95,5 +95,6 @@ export const en = {
   'chars.sub.snake': 'Wiggles and flicks its tongue', 'chars.sub.duck': 'Flaps tiny wings', 'chars.sub.capybara': 'Chill, with a yuzu on its head', 'chars.sub.croc': 'Big happy grin',
   'draw.screens': 'Three screens wide:', 'draw.screen0': 'Left', 'draw.screen1': 'Middle (buddy sits here)', 'draw.screen2': 'Right',
   'parent.charDays': 'Streak days per new buddy',
-  'icon.title': 'Draw your own decoration', 'icon.mine': 'My drawing', 'icon.draw': 'Redraw', 'icon.empty': 'Draw something first', 'icon.hint': 'Draw in the box. It will grow in your scene after saving.'
+  'icon.title': 'Draw your own decoration', 'icon.mine': 'My drawing', 'icon.draw': 'Redraw', 'icon.empty': 'Draw something first', 'icon.hint': 'Draw in the box. It will grow in your scene after saving.',
+  'home.backToPocket': 'Back in your pocket', 'hint.move': 'You can move a placed decoration: press and hold it, then drag it somewhere new. Drop it on the pocket (bottom right) to take it back.'
 };

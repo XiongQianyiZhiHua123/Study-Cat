@@ -4,7 +4,7 @@ import * as L from '../logic.js';
 import { t, getLang, wd, fmtDay } from '../i18n.js';
 import { esc, ICON, sceneSVG, sceneName, elementIcons, modal, toast, NAV } from '../ui.js';
 import { play, unlock } from '../sound.js';
-import { pocketIcon, SCENE_BY_ID, sceneElements } from '../art.js';
+import { pocketIcon, SCENE_BY_ID, sceneElements, KIND_SCALE } from '../art.js';
 import { charOf } from '../chars.js';
 import { openSubjectEditor } from './subjects.js';
 
@@ -226,7 +226,7 @@ export function mount(root) {
         ${e.small.map((k, i) => row(elementIcons([k], st), t('hint.small', { s: subj[i] || '' }))).join('')}
         ${row(elementIcons([e.big], st), t('hint.big', { n: st.settings.goalMin }))}
         ${row(elementIcons([e.rare], st), t('hint.rare', { d: L.RARE_AT.join(' / ') }))}
-        <p class="note">${esc(t('hint.pano', { a: L.RIGHT_AT, b: L.LEFT_AT }))}</p>
+        <p class="note">${esc(t('hint.pano', { a: L.RIGHT_AT, b: L.LEFT_AT }))}</p><p class="note">${esc(t('hint.move'))}</p>
         <div class="modal-actions"><span class="grow"></span><button class="btn pri" data-m="no">${esc(t('common.close'))}</button></div>`, (el, close) => { el.querySelector('[data-m=no]').onclick = close; });
     },
     lock() { /* 长按在下面单独处理 */ }
@@ -262,20 +262,85 @@ export function mount(root) {
     play(charOf(store.get().chars.active).sound, store.get().settings);
     clearTimeout(pokeTimer); pokeTimer = setTimeout(() => el.classList.remove('poke'), 1100);
   }
+  // 拖动已经放好的装饰:手指/笔要先"长按"一下拿起来(不然是滑动全景),鼠标直接拖。拖到右下角口袋上松手 = 收回。
+  let eld = null; let edgeTimer = null;
+  const worldOf = (e) => {
+    const r = root.querySelector('.pano').getBoundingClientRect();
+    return [((e.clientX - r.left) / r.width) * L.WORLD_W, Math.min(480, Math.max(60, ((e.clientY - r.top) / r.height) * 500))];
+  };
+  const placeG = (x, y) => {
+    const e0 = eld.el; const sc = KIND_SCALE[e0.kind] || 1; const lift = 1.15;
+    eld.g.setAttribute('transform', `translate(${x} ${y}) rotate(${e0.r}) scale(${(sc * e0.f * lift).toFixed(2)} ${(sc * lift).toFixed(2)})`);
+  };
+  const overPocket = (e) => { const pk = root.querySelector('.pocket'); if (!pk) return false; const r = pk.getBoundingClientRect(); return e.clientX > r.left - 12 && e.clientX < r.right + 12 && e.clientY > r.top - 12 && e.clientY < r.bottom + 12; };
+  function elStart() {
+    if (!eld || eld.on) return;
+    eld.on = true; ui.dragged = true;
+    const sceneEl = root.querySelector('#scene'); if (sceneEl) sceneEl.classList.add('dragging');
+    eld.g.classList.add('lift');
+    play('tap', store.get().settings);
+    edgeTimer = setInterval(() => {
+      const sc = root.querySelector('#scroller'); if (!sc || !eld || !eld.last) return;
+      const r = sc.getBoundingClientRect();
+      if (eld.last.clientX < r.left + 40) sc.scrollLeft -= 14; else if (eld.last.clientX > r.right - 40) sc.scrollLeft += 14;
+      const [x, y] = worldOf(eld.last); placeG(x, y);
+    }, 30);
+  }
+  const elDown = (e) => {
+    if (ui.placing || e.target.closest('.tray')) return;
+    const g = e.target.closest('.pel'); if (!g) return;
+    const el = (store.get().scenes.placed[sceneId()] || [])[Number(g.dataset.pi)]; if (!el) return;
+    eld = { g, i: Number(g.dataset.pi), el: { ...el }, sx: e.clientX, sy: e.clientY, on: false, last: e, type: e.pointerType, timer: null };
+    if (e.pointerType !== 'mouse') eld.timer = setTimeout(elStart, e.pointerType === 'pen' ? 220 : 380);
+  };
+  const elMove = (e) => {
+    if (!eld) return;
+    eld.last = e;
+    const d = Math.hypot(e.clientX - eld.sx, e.clientY - eld.sy);
+    if (!eld.on) {
+      if (eld.type === 'mouse' && d > 4) elStart();
+      else if (eld.type !== 'mouse' && d > 10) { clearTimeout(eld.timer); eld = null; return; } // 是在滑动全景
+      if (!eld || !eld.on) return;
+    }
+    e.preventDefault();
+    const [x, y] = worldOf(e); placeG(x, y);
+    const pk = root.querySelector('.pocket'); if (pk) pk.classList.toggle('drop', overPocket(e));
+  };
+  const elEnd = (e) => {
+    if (!eld) return;
+    clearTimeout(eld.timer); clearInterval(edgeTimer); edgeTimer = null;
+    const d = eld; eld = null;
+    const sceneEl = root.querySelector('#scene'); if (sceneEl) sceneEl.classList.remove('dragging');
+    if (!d.on) return;
+    setTimeout(() => { ui.dragged = false; }, 60);
+    if (e.type === 'pointercancel') { render(); return; }
+    const sid = sceneId();
+    if (overPocket(e)) {
+      store.update((s2) => { L.removeToPocket(s2, sid, d.i); });
+      play('tap', store.get().settings); toast(t('home.backToPocket'));
+      return;
+    }
+    const [x, y] = worldOf(e);
+    let moved = false;
+    store.update((s2) => { moved = L.moveElement(s2, sid, d.i, x, y); });
+    if (moved) play('place', store.get().settings); else { toast(t('home.sideLocked', { n: 1 })); render(); }
+  };
+  const noScrollWhileDrag = (e) => { if (eld && eld.on) e.preventDefault(); };
   // 鼠标拖动全景(手指和笔用系统自带的滑动)
   let drag = null;
   const dragStart = (e) => {
     const sc = e.target.closest('#scroller');
-    if (!sc || e.pointerType !== 'mouse' || ui.placing) return;
+    if (!sc || e.pointerType !== 'mouse' || ui.placing || e.target.closest('.pel')) return;
     drag = { x: e.clientX, left: sc.scrollLeft, sc, moved: false };
   };
   const dragMove = (e) => {
+    elMove(e);
     if (!drag) return;
     const dx = e.clientX - drag.x;
     if (Math.abs(dx) > 6) { drag.moved = true; ui.dragged = true; }
     if (drag.moved) drag.sc.scrollLeft = drag.left - dx;
   };
-  const dragEnd = () => { if (drag) { drag = null; setTimeout(() => { ui.dragged = false; }, 0); } };
+  const dragEnd = (e) => { elEnd(e); if (drag) { drag = null; setTimeout(() => { ui.dragged = false; }, 0); } };
   // 家长入口:长按 3 秒
   const holdStart = (e) => {
     const b = e.target.closest('.lockbtn'); if (!b) return;
@@ -295,8 +360,11 @@ export function mount(root) {
   root.addEventListener('click', onClick);
   root.addEventListener('pointerdown', holdStart);
   root.addEventListener('pointerdown', dragStart);
-  window.addEventListener('pointermove', dragMove);
+  root.addEventListener('pointerdown', elDown);
+  root.addEventListener('touchmove', noScrollWhileDrag, { passive: false });
+  window.addEventListener('pointermove', dragMove, { passive: false });
   window.addEventListener('pointerup', dragEnd);
+  window.addEventListener('pointercancel', dragEnd);
   root.addEventListener('pointerup', holdEnd);
   root.addEventListener('pointercancel', holdEnd);
   root.addEventListener('pointerleave', holdEnd, true);
@@ -313,8 +381,12 @@ export function mount(root) {
     root.removeEventListener('click', onClick);
     root.removeEventListener('pointerdown', holdStart);
     root.removeEventListener('pointerdown', dragStart);
+    root.removeEventListener('pointerdown', elDown);
+    root.removeEventListener('touchmove', noScrollWhileDrag);
     window.removeEventListener('pointermove', dragMove);
     window.removeEventListener('pointerup', dragEnd);
+    window.removeEventListener('pointercancel', dragEnd);
+    clearInterval(edgeTimer);
     clearTimeout(pokeTimer);
     root.removeEventListener('pointerup', holdEnd);
     root.removeEventListener('pointercancel', holdEnd);

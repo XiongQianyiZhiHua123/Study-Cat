@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createState, normalize, ymd, addDays, diffDays, dayStatus, streakInfo, startSession, finishSession,
   canUseMakeup, useMakeup, chooseScene, placeFromPocket, monthData, addManualSession, dayMinutes, subjectSlot, subjectName,
-  chooseChar, screensOpen, canPlaceAt, checkMilestones
+  chooseChar, screensOpen, canPlaceAt, checkMilestones, moveElement, removeToPocket
 } from '../js/logic.js';
 
 // 与设计稿同一份示例数据:[英语,数学,画画] 分钟,'r' 为休息日(周三)
@@ -203,4 +203,26 @@ test('角色:第一次自选;每连续 charDays 天再得一次;自己的第一�
   assert.equal(chooseScene(s, 'custom2'), true); // 第二张要消耗一次机会
   assert.equal(s.rewards.sceneCredits, 0);
   assert.equal(chooseScene(s, 'custom3'), false);
+});
+
+test('挪动和收回已放好的装饰', () => {
+  const s = createState();
+  chooseScene(s, 'night');
+  s.rewards.pocket.push({ kind: 'small', slot: 2 });
+  placeFromPocket(s, 0, 800, 200, () => 0.5);
+  assert.equal(moveElement(s, 'night', 0, 1000.4, 30), true);
+  assert.deepEqual([s.scenes.placed.night[0].x, s.scenes.placed.night[0].y], [1000, 60]);
+  assert.equal(moveElement(s, 'night', 0, 100, 200), false); // 左边还没出现
+  assert.equal(removeToPocket(s, 'night', 0), true);
+  assert.deepEqual(s.rewards.pocket, [{ kind: 'small', slot: 2 }]);
+  assert.equal(s.scenes.placed.night.length, 0);
+  assert.equal(removeToPocket(s, 'night', 0), false);
+});
+test('收回装饰后,已经出现的风景不会又被盖住', () => {
+  const s = createState();
+  chooseScene(s, 'night');
+  for (let i = 0; i < 8; i++) { s.rewards.pocket.push({ kind: 'small', slot: 0 }); placeFromPocket(s, 0, 800, 200, () => 0.5); }
+  assert.equal(screensOpen(s, 'night').right, true);
+  removeToPocket(s, 'night', 0);
+  assert.equal(screensOpen(s, 'night').right, true);
 });
